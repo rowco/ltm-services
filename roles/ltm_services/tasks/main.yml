@@ -53,8 +53,8 @@
 
 - name: Create the key
   vars:
-    # Find the content of the certificate key, in this case we decrypt the key first.
-    certificate_key: "{{ lookup('file', 'certificates/{{partition}}/{{ssl_cert_name}}.key') | key_decrypt(passphrases[partition]) }}"
+    # Find the content of the certificate key
+    certificate_key: "{{ lookup('file', 'certificates/{{partition}}/{{ssl_cert_name}}.key') }}"
     bigip_ssl_key_vars: "{{bigip_ssl_key}}"
   bigip_ssl_key:
     provider:   "{{f5}}"
