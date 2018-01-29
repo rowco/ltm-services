@@ -13,7 +13,7 @@ Example inventory
 
 ```
 [ltm_services]
-f5-demo-vip-a.netcomms
-f5-demo-vip-b.netcomms
+f5-vip-a.demo
+f5-vip-b.demo
 ```
 
