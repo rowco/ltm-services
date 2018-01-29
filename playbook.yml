@@ -1,0 +1,12 @@
+---
+- name: Create a VIP, pool, pool members and nodes
+  connection: local
+  environment:
+    F5_SERVER: "{{f5_server}}"
+    F5_PASSWORD: "{{f5_password}}"
+    F5_USER: "{{f5_user}}"
+    F5_VALIDATE_CERTS: "false"
+
+  hosts: "ltm_services"
+  roles:
+    - ltm_services

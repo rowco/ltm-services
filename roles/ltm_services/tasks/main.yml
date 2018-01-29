@@ -1,0 +1,120 @@
+#
+# Include the f5 secrets file
+#
+- include_vars: "secrets/{{f5_server}}"
+
+#
+# Suport the new provider options
+#
+- include_vars: "f5_provider.yml"
+
+
+- name: Create a pool
+  vars:
+    bigip_pool_vars: "{{bigip_pool}}"
+  bigip_pool:
+    provider:            "{{f5}}"
+    description:         "{{bigip_pool_vars['description']         | default(omit)}}"
+    name:                "{{bigip_pool_vars['name']                | default(omit)}}"
+    lb_method:           "{{bigip_pool_vars['lb_method']           | default(omit)}}"
+    monitor_type:        "{{bigip_pool_vars['monitor_type']        | default(omit)}}"
+    quorum:              "{{bigip_pool_vars['quorum']              | default(omit)}}"
+    monitors:            "{{bigip_pool_vars['monitors']            | default(omit)}}"
+    slow_ramp_time:      "{{bigip_pool_vars['slow_ramp_time']      | default(omit)}}"
+    reselect_tries:      "{{bigip_pool_vars['reselect_tries']      | default(omit)}}"
+    service_down_action: "{{bigip_pool_vars['service_down_action'] | default(omit)}}"
+    partition:           "{{bigip_pool_vars['partition']           | default(omit)}}"
+    state:               "{{bigip_pool_vars['state']               | default(omit)}}"
+    metadata:            "{{bigip_pool_vars['metadata']            | default(omit)}}"
+  delegate_to: localhost
+
+
+- name: Add nodes to pool
+  vars:
+    bigip_pool_member_vars: "{{bigip_pool_member|combine(item)}}"
+  bigip_pool_member:
+    provider:         "{{f5}}"
+    state:            "{{bigip_pool_member_vars['state']            | default(omit)}}"
+    session_state:    "{{bigip_pool_member_vars['session_state']    | default(omit)}}"
+    monitor_state:    "{{bigip_pool_member_vars['monitor_state']    | default(omit)}}"
+    pool:             "{{bigip_pool_member_vars['pool']             | default(omit)}}"
+    partition:        "{{bigip_pool_member_vars['partition']        | default(omit)}}"
+    host:             "{{bigip_pool_member_vars['host']             | default(omit)}}"
+    port:             "{{bigip_pool_member_vars['port']             | default(omit)}}"
+    connection_limit: "{{bigip_pool_member_vars['connection_limit'] | default(0)}}"
+    description:      "{{bigip_pool_member_vars['description']      | default(omit)}}"
+    rate_limit:       "{{bigip_pool_member_vars['rate_limit']       | default(0)}}"
+    ratio:            "{{bigip_pool_member_vars['ratio']            | default(omit)}}"
+    preserve_node:    "{{bigip_pool_member_vars['preserve_node']    | default('no')}}"
+    priority_group:   "{{bigip_pool_member_vars['priority_group']   | default(0)}}"
+  delegate_to: localhost
+  with_items: "{{nodes}}"
+
+
+- name: Create the key
+  vars:
+    # Find the content of the certificate key, in this case we decrypt the key first.
+    certificate_key: "{{ lookup('file', 'certificates/{{partition}}/{{ssl_cert_name}}.key') | key_decrypt(passphrases[partition]) }}"
+    bigip_ssl_key_vars: "{{bigip_ssl_key}}"
+  bigip_ssl_key:
+    provider:   "{{f5}}"
+    content:    "{{bigip_ssl_key_vars['content']    | default(omit)}}"
+    state:      "{{bigip_ssl_key_vars['state']      | default(omit)}}"
+    name:       "{{bigip_ssl_key_vars['name']       | default(omit)}}"
+    passphrase: "{{bigip_ssl_key_vars['passphrase'] | default(omit)}}"
+    partition:  "{{bigip_ssl_key_vars['partition']  | default(omit)}}"
+  delegate_to: localhost
+  when: ssl
+
+- name: Create the certificate
+  vars:
+    # Find the certificate content
+    certificate_cert: "{{ lookup('file', 'certificates/{{partition}}/{{ssl_cert_name}}.crt') }}"
+    bigip_ssl_certificate_vars: "{{bigip_ssl_certificate}}"
+  bigip_ssl_certificate:
+    provider:    "{{f5}}"
+    content:     "{{bigip_ssl_certificate_vars['content']     | default(omit)}}"
+    state:       "{{bigip_ssl_certificate_vars['state']       | default(omit)}}"
+    name:        "{{bigip_ssl_certificate_vars['name']        | default(omit)}}"
+    issuer_cert: "{{bigip_ssl_certificate_vars['issuer_cert'] | default(omit)}}"
+    partition:   "{{bigip_ssl_certificate_vars['partition']   | default(omit)}}"
+  delegate_to: localhost
+  when: ssl
+
+- name: Create the client ssl profile
+  vars:
+    bigip_profile_client_ssl_vars: "{{bigip_profile_client_ssl}}"
+  bigip_profile_client_ssl:
+    provider:       "{{f5}}"
+    name:           "{{bigip_profile_client_ssl_vars['name']           | default(omit)}}"
+    parent:         "{{bigip_profile_client_ssl_vars['parent']         | default(omit)}}"
+    ciphers:        "{{bigip_profile_client_ssl_vars['ciphers']        | default(omit)}}"
+    cert_key_chain: "{{bigip_profile_client_ssl_vars['cert_key_chain'] | default(omit)}}"
+    partition:      "{{bigip_profile_client_ssl_vars['partition']      | default(omit)}}"
+    state:          "{{bigip_profile_client_ssl_vars['state']          | default(omit)}}"
+  delegate_to: localhost
+  when: ssl
+
+- name: Create a VIP
+  vars:
+    bigip_virtual_server_vars: "{{bigip_virtual_server}}"
+  bigip_virtual_server:
+    provider:                     "{{f5}}"
+    state:                        "{{bigip_virtual_server_vars['state']                        | default(omit)}}"
+    name:                         "{{bigip_virtual_server_vars['name']                         | default(omit)}}"
+    destination:                  "{{bigip_virtual_server_vars['destination']                  | default(omit)}}"
+    source:                       "{{bigip_virtual_server_vars['source']                       | default(omit)}}"
+    port:                         "{{bigip_virtual_server_vars['port']                         | default(omit)}}"
+    profiles:                     "{{bigip_virtual_server_vars['profiles']                     | default(omit)}}"
+    irules:                       "{{bigip_virtual_server_vars['irules']                       | default(omit)}}"
+    enabled_vlans:                "{{bigip_virtual_server_vars['enabled_vlans']                | default(omit)}}"
+    disabled_vlans:               "{{bigip_virtual_server_vars['disabled_vlans']               | default(omit)}}"
+    pool:                         "{{bigip_virtual_server_vars['pool']                         | default(omit)}}"
+    policies:                     "{{bigip_virtual_server_vars['policies']                     | default(omit)}}"
+    snat:                         "{{bigip_virtual_server_vars['snat']                         | default(omit)}}"
+    default_persistence_profile:  "{{bigip_virtual_server_vars['default_persistence_profile']  | default(omit)}}"
+    description:                  "{{bigip_virtual_server_vars['description']                  | default(omit)}}"
+    fallback_persistence_profile: "{{bigip_virtual_server_vars['fallback_persistence_profile'] | default(omit)}}"
+    partition:                    "{{bigip_virtual_server_vars['partition']                    | default(omit)}}"
+    metadata:                     "{{bigip_virtual_server_vars['metadata']                     | default(omit)}}"
+  delegate_to: localhost

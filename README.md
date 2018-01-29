@@ -60,3 +60,12 @@ bigip_pool:
   monitors:
     - "http"
 ```
+
+Ansible vault of passwords
+
+secrets/bigip-1.demo
+
+```
+f5_user: "admin"
+f5_password: "passwordxx"
+```
